@@ -20,11 +20,12 @@ spriteSize = 20
 coinSize = 60
 speed = 10
 
+
 title = pygame.font.SysFont("caladea" , 300 , bold=True)
 undertitle = pygame.font.SysFont("caladea" , 50 , bold=True)
 points = pygame.font.SysFont("caladea" , 50 , bold=True)
-
 clock = pygame.time.Clock()
+
 
 class GameState:
     def __init__(self):
@@ -40,6 +41,7 @@ class GameState:
         self.coin = None
         self.coinGap = 0
         self.extraScore = 0
+        self.spawnInterval = 4000
 
 
 def movement(keys, state):
@@ -56,6 +58,7 @@ def movement(keys, state):
     state.x += vx
     state.y += vy
 
+
 def borderCheck(state):
 
     if state.x >= width - spriteSize:
@@ -67,6 +70,7 @@ def borderCheck(state):
         state.y = height - spriteSize
     elif state.y <= 0:
         state.y = 0
+
 
 def dash(keys, now, state):
 
@@ -82,6 +86,7 @@ def dash(keys, now, state):
     if now - state.last >= 1:
         state.v = speed
 
+
 def overlay(state):
 
     if state.v == speed:
@@ -91,6 +96,7 @@ def overlay(state):
 
     surf.fill((0, 0, 0))
     screen.blit(surf, (0, 0))
+
 
 def distance(x1, y1, x2, y2):
 
@@ -161,6 +167,7 @@ while running:
 
         keys = pygame.key.get_pressed()
         now = pygame.time.get_ticks()
+        state.spawnInterval = max(800, 3000 - (now - start) // 200)
         score = str(math.floor((now - start) / 100) / 10 + state.extraScore)
 
 
@@ -201,18 +208,18 @@ while running:
 
         #warning before pulse
 
-        if now - state.pulseGap >= 1000 and now - start >= 1000 and len(state.warning) < 1 :
+        if now - state.pulseGap >= state.spawnInterval / 2 and now - start >= state.spawnInterval / 2 and len(state.warning) < 1 :
 
             state.warning.append((random.randint(0 , width) , random.randint(0 , height)))
 
 
         #add pulse
 
-        if now - state.pulseGap >= 2000 and now - start >= 2000 and len(state.warning) > 0:
+        if now - state.pulseGap >= state.spawnInterval and now - start >= state.spawnInterval and len(state.warning) > 0:
 
             state.pulse.append(state.warning[0])
             state.pulseR.append(0)
-            state.dr.append(5)
+            state.dr.append(min(10, 3 + (now - start) // 80000))
             state.warning.pop(0)
             state.pulseGap = now
 
