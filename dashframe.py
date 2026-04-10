@@ -1,38 +1,24 @@
 import pygame
 import math
 import random
+import sys
 
 pygame.init()
 
 screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 width , height = screen.get_size()
+surf = pygame.Surface((width, height))
 
-black = (0 , 0 , 0)
-white = (255 , 255 , 255)
-green = (0 , 255 , 0)
-red = (255 , 0 , 0)
-dred = (100 , 0 , 0)
-yellow = (255 , 255 , 0)
+
+black = (0, 0, 0)
+white = (255, 255, 255)
+green = (0, 255, 0)
+red = (255, 0, 0)
+dred = (100, 0, 0)
+yellow = (255, 255, 0)
 spriteSize = 20
 coinSize = 60
-vx = 0
-vy = 0
 speed = 10
-v = 0
-x = 0.5 * width - 0.5 * spriteSize
-y = 0.5 * height - 0.5 * spriteSize
-last = 0
-pulseGap = 0
-pulse= []
-pulseR = []
-dr = []
-warning = []
-coins = (0 , 0)
-extraScore = 0
-coinGap = 0
-
-
-
 
 title = pygame.font.SysFont("caladea" , 300 , bold=True)
 undertitle = pygame.font.SysFont("caladea" , 50 , bold=True)
@@ -40,62 +26,76 @@ points = pygame.font.SysFont("caladea" , 50 , bold=True)
 
 clock = pygame.time.Clock()
 
-def movement(keys , v , x , y):
+class GameState:
+    def __init__(self):
+        self.x = 0.5 * width - 0.5 * spriteSize
+        self.y = 0.5 * height - 0.5 * spriteSize
+        self.v = speed
+        self.last = 0
+        self.pulseGap = 0
+        self.pulse = []
+        self.pulseR = []
+        self.dr = []
+        self.warning = []
+        self.coin = None
+        self.coinGap = 0
+        self.extraScore = 0
 
-    vx = (keys[pygame.K_d] - keys[pygame.K_a]) * v
-    vy = (keys[pygame.K_s] - keys[pygame.K_w]) * v
+
+def movement(keys, state):
+
+    vx = (keys[pygame.K_d] - keys[pygame.K_a]) * state.v
+    vy = (keys[pygame.K_s] - keys[pygame.K_w]) * state.v
+
+    #adjustement for diagonal
 
     if vx != 0 and vy != 0:
-        vx = vx*(math.sqrt(2)/2)
-        vy = vy*(math.sqrt(2)/2)
-    
-    x += vx
-    y += vy
-    
-    return x , y
+        vx = vx * (math.sqrt(2) / 2)
+        vy = vy * (math.sqrt(2) / 2)
 
-def borderCheck(x , y):
+    state.x += vx
+    state.y += vy
 
-    if x >= width - spriteSize:
-        x = width - spriteSize
-    elif x <= 0:
-        x = 0
-    
-    if y >= height - spriteSize:
-        y = height - spriteSize       
-    elif y <= 0:
-        y = 0
-    
-    return x , y
+def borderCheck(state):
 
-def dash(keys , now , last , speed , v):
+    if state.x >= width - spriteSize:
+        state.x = width - spriteSize
+    elif state.x <= 0:
+        state.x = 0
 
-    if keys[pygame.K_SPACE] and now - last >= 8.3 * 60:
-        v = speed * 30
-        last = pygame.time.get_ticks()
+    if state.y >= height - spriteSize:
+        state.y = height - spriteSize
+    elif state.y <= 0:
+        state.y = 0
 
-    if now - last >= 10:
-        v = speed
+def dash(keys, now, state):
 
-    return v , last
+    #dash cooldown
 
-def overlay(v , speed):
+    if keys[pygame.K_SPACE] and now - state.last >= 500:
+        state.v = speed * 30
+        state.last = pygame.time.get_ticks()
 
-    overlay = pygame.Surface((width, height))
 
-    if v == speed:
-        overlay.set_alpha(100)
+    #dash duration (1 frame)
+
+    if now - state.last >= 1:
+        state.v = speed
+
+def overlay(state):
+
+    if state.v == speed:
+        surf.set_alpha(100)
     else:
-        overlay.set_alpha(255)
+        surf.set_alpha(255)
 
-    overlay.fill((0, 0, 0))
-    screen.blit(overlay, (0, 0))
+    surf.fill((0, 0, 0))
+    screen.blit(surf, (0, 0))
 
-def distance(x1 , y1 , x2 , y2):
+def distance(x1, y1, x2, y2):
 
-    dist = math.sqrt((x2-x1)**2 + (y2-y1)**2)   
+    return math.sqrt((x2 - x1) ** 2 + (y2 - y1) ** 2)
 
-    return dist
 
 running = True
 
@@ -104,18 +104,7 @@ while running:
     #resetting everything for restart
 
     screen.fill(black)
-    x = 0.5 * width - 0.5 * spriteSize
-    y = 0.5 * height - 0.5 * spriteSize
-    v = speed
-    last = 0
-    pulseGap = 0
-    pulse= []
-    pulseR = []
-    dr = []
-    warning = []
-    coins = (0 , 0)
-    coinGap = 0
-    extraScore = 0
+    state = GameState()
 
     #wait til no keys are pressed
     
@@ -126,6 +115,8 @@ while running:
 
     while menu:
         
+        screen.fill(black)
+
         #menu text
 
         text = title.render("DASHFRAME", True, white)
@@ -138,20 +129,22 @@ while running:
         textRect.center = (width // 2, height * 0.6)
         screen.blit(text, textRect)
 
+        keys = pygame.key.get_pressed()
+
 
         #quit options
-
-        keys = pygame.key.get_pressed()
 
         for event in pygame.event.get():
 
             if event.type == pygame.QUIT:
 
                 pygame.quit()
+                sys.exit()
             
             if keys[pygame.K_ESCAPE]:
 
                 pygame.quit()
+                sys.exit()
 
             if keys[pygame.K_SPACE]:
 
@@ -159,9 +152,7 @@ while running:
         
         pygame.display.flip()
 
-
     start = pygame.time.get_ticks()
-
     alive = True
     
     while alive:
@@ -170,7 +161,7 @@ while running:
 
         keys = pygame.key.get_pressed()
         now = pygame.time.get_ticks()
-        score = str(math.floor((now - start) / 60) / 10 + extraScore)
+        score = str(math.floor((now - start) / 100) / 10 + state.extraScore)
 
 
         #quit options
@@ -180,87 +171,89 @@ while running:
             if event.type == pygame.QUIT:
 
                 pygame.quit()
+                sys.exit()
             
             if keys[pygame.K_ESCAPE]:
 
                 pygame.quit()
+                sys.exit()
         
 
         #path behind player
         
-        overlay(v , speed)
+        overlay(state)
 
 
         #wasd movement and adjustement for diagonal
 
-        x , y = movement(keys , v , x , y)
+        movement(keys , state)
 
 
         #dash cooldown and duration
 
-        v , last = dash(keys , now , last , speed , v)
+        dash(keys, now, state)
 
 
         #screen borders
 
-        x , y = borderCheck(x , y)
+        borderCheck(state)
 
 
         #warning before pulse
 
-        if now - pulseGap >= 16.6 * 60 and now - start >= 16.6 * 60 and len(warning) < 1 :
+        if now - state.pulseGap >= 1000 and now - start >= 1000 and len(state.warning) < 1 :
 
-            warning.append((random.randint(0 , width) , random.randint(0 , height)))
+            state.warning.append((random.randint(0 , width) , random.randint(0 , height)))
 
 
         #add pulse
 
-        if now - pulseGap >= 33.3 * 60 and now - start >= 33.3 * 60:
+        if now - state.pulseGap >= 2000 and now - start >= 2000 and len(state.warning) > 0:
 
-            pulse.append(warning[0])
-            pulseR.append(0)
-            dr.append(5)
-            warning.pop()
-            pulseGap = now
+            state.pulse.append(state.warning[0])
+            state.pulseR.append(0)
+            state.dr.append(5)
+            state.warning.pop(0)
+            state.pulseGap = now
 
 
         #remove unnecessary pulses
 
-        if len (pulse) > 0:
+        if len (state.pulse) > 0:
 
-            if pulseR[0] > 5000:
+            if state.pulseR[0] > 5000:
 
-                pulse.pop(0)
-                pulseR.pop(0) 
-                dr.pop(0)
+                state.pulse.pop(0)
+                state.pulseR.pop(0) 
+                state.dr.pop(0)
 
 
-        #add coins
+        #add coin
 
-        if (now - start) >= 100 * 60 and coins == (0 , 0) and now - coinGap >= 50 * 60:
+        if (now - start) >= 10000 and state.coin == None and now - state.coinGap >= 5000:
 
-            coins = (random.randint(1 , width - coinSize) , random.randint(1 , height - coinSize))
+            state.coin = (random.randint(0 , width - coinSize) , random.randint(0 , height - coinSize))
 
 
         #draw characters
 
-        if coins != (0 , 0):
+        if state.coin != None:
 
-            pygame.draw.rect(screen , yellow , [coins[0] , coins[1] , coinSize , coinSize])
+            pygame.draw.rect(screen , yellow , [state.coin[0] , state.coin[1] , coinSize , coinSize])
 
-        for i in range (0 , len(warning)):
+        for i in range (len(state.warning)):
 
             if now % 400 < 200:
-                pygame.draw.circle(screen, red, (warning[i]), 18 , 50)
+                pygame.draw.circle(screen, red, (state.warning[i]), 18 , 50)
             else:
-                pygame.draw.circle(screen, dred, (warning[i]), 18 , 50)
+                pygame.draw.circle(screen, dred, (state.warning[i]), 18 , 50)
 
-        for i in range (0 , len(pulse)):
+        for i in range (len(state.pulse)):
 
-            pygame.draw.circle(screen, white, (pulse[i]), pulseR[i], 8)
-            pulseR[i] += dr[i]
+            pygame.draw.circle(screen, white, (state.pulse[i]), state.pulseR[i], 8)
+            state.pulseR[i] += state.dr[i]
 
-        pygame.draw.rect(screen , green , [x , y , spriteSize , spriteSize])
+        pygame.draw.rect(screen , green , [int(state.x) , int(state.y) , spriteSize , spriteSize])
 
         
         #print score
@@ -273,20 +266,24 @@ while running:
 
         #coin reg
 
+        if state.coin != None:
 
-        if -40 <= distance(x + spriteSize/2 , y + spriteSize/2 , coins[0] + coinSize / 2 , coins[1] + coinSize / 2) <= 40 and v == speed:
+            coinRect = pygame.Rect(state.coin[0], state.coin[1], coinSize, coinSize)
+            playerRect = pygame.Rect(state.x, state.y, spriteSize, spriteSize)
 
-            coins = (0 , 0)
-            extraScore += 10
-            coinGap = now
+            if playerRect.colliderect(coinRect) and state.v == speed:
+
+                state.coin = None
+                state.extraScore += 10
+                state.coinGap = now
                 
 
 
         #hitreg
 
-        for i in range (0 , len(pulse)):
+        for i in range (len(state.pulse)):
 
-            if -8 <= distance(x + spriteSize/2 , y + spriteSize/2 , pulse[i][0] , pulse[i][1]) - pulseR[i] <= 8 and v == speed:
+            if -8 <= distance(state.x + spriteSize/2 , state.y + spriteSize/2 , state.pulse[i][0] , state.pulse[i][1]) - state.pulseR[i] <= 8 and state.v == speed:
 
                 alive = False
 
