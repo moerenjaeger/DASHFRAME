@@ -33,6 +33,7 @@ coinGap = 0
 
 
 
+
 title = pygame.font.SysFont("caladea" , 300 , bold=True)
 undertitle = pygame.font.SysFont("caladea" , 50 , bold=True)
 points = pygame.font.SysFont("caladea" , 50 , bold=True)
