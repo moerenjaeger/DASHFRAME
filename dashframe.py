@@ -18,12 +18,22 @@ dred = (100, 0, 0)
 yellow = (255, 255, 0)
 spriteSize = 20
 coinSize = 60
-speed = 10
+speed = 10 
+scoreGap = 6
 
+logo = pygame.image.load("logo.png")
+spacetoplay = pygame.image.load("spacetoplay.png")
+digitImages = {}
+for d in "0123456789":
+    img = pygame.image.load(f"{d}.png").convert_alpha()
+    digitImages[d] = pygame.transform.scale(img, (img.get_width() * 4, img.get_height() * 4))
+img = pygame.image.load("dot.png").convert_alpha()
+digitImages["."] = pygame.transform.scale(img, (img.get_width() * 4, img.get_height() * 4))
 
-title = pygame.font.SysFont("caladea" , 300 , bold=True)
-undertitle = pygame.font.SysFont("caladea" , 50 , bold=True)
-points = pygame.font.SysFont("caladea" , 50 , bold=True)
+# title = pygame.font.SysFont("caladea" , 300 , bold=True)
+# undertitle = pygame.font.SysFont("caladea" , 50 , bold=True)
+# points = pygame.font.SysFont("caladea" , 70 , bold=True)
+
 clock = pygame.time.Clock()
 
 
@@ -107,12 +117,12 @@ running = True
 
 while running:
 
-    #resetting everything for restart
+    # resetting everything for restart
 
     screen.fill(black)
     state = GameState()
 
-    #wait til no keys are pressed
+    # wait til no keys are pressed
     
     while any(pygame.key.get_pressed()):
         pygame.event.pump()
@@ -123,22 +133,30 @@ while running:
         
         screen.fill(black)
 
-        #menu text
+        # menu text
 
-        text = title.render("DASHFRAME", True, white)
-        textRect = text.get_rect()
-        textRect.center = (width // 2, height * 0.4)
-        screen.blit(text, textRect)
+        # text = title.render("DASHFRAME", True, white)
+        # textRect = text.get_rect()
+        # textRect.center = (width // 2, height * 0.4)
+        # screen.blit(text, textRect)
 
-        text = undertitle.render("PRESS SPACE TO PLAY", True, white)
-        textRect = text.get_rect()
-        textRect.center = (width // 2, height * 0.6)
-        screen.blit(text, textRect)
+        logoRect = logo.get_rect()
+        logoRect.center = (width // 2, height * 0.4)
+        screen.blit(logo, logoRect)
+
+        # text = undertitle.render("PRESS SPACE TO PLAY", True, white)
+        # textRect = text.get_rect()
+        # textRect.center = (width // 2, height * 0.6)
+        # screen.blit(text, textRect)
+
+        spacetoplayRect = spacetoplay.get_rect()
+        spacetoplayRect.center = (width // 2, height * 0.65)
+        screen.blit(spacetoplay, spacetoplayRect)
 
         keys = pygame.key.get_pressed()
 
 
-        #quit options
+        # quit options
 
         for event in pygame.event.get():
 
@@ -163,15 +181,15 @@ while running:
     
     while alive:
 
-        #refreshing variables
+        # refreshing variables
 
         keys = pygame.key.get_pressed()
         now = pygame.time.get_ticks()
-        state.spawnInterval = max(800, 3000 - (now - start) // 200)
+        state.spawnInterval = max(800, 6000 - (now - start) // 50)
         score = str(math.floor((now - start) / 100) / 10 + state.extraScore)
 
 
-        #quit options
+        # quit options
 
         for event in pygame.event.get():
 
@@ -186,92 +204,100 @@ while running:
                 sys.exit()
         
 
-        #path behind player
+        # path behind player
         
         overlay(state)
 
 
-        #wasd movement and adjustement for diagonal
+        # wasd movement and adjustement for diagonal
 
         movement(keys , state)
 
 
-        #dash cooldown and duration
+        # dash cooldown and duration
 
         dash(keys, now, state)
 
 
-        #screen borders
+        # screen borders
 
         borderCheck(state)
 
 
-        #warning before pulse
+        # warning before pulse
 
         if now - state.pulseGap >= state.spawnInterval / 2 and now - start >= state.spawnInterval / 2 and len(state.warning) < 1 :
 
             state.warning.append((random.randint(0 , width) , random.randint(0 , height)))
 
 
-        #add pulse
+        # add pulse
 
         if now - state.pulseGap >= state.spawnInterval and now - start >= state.spawnInterval and len(state.warning) > 0:
 
             state.pulse.append(state.warning[0])
             state.pulseR.append(0)
-            state.dr.append(min(10, 3 + (now - start) // 80000))
+            state.dr.append(min(10, 3 + (now - start) // 40000))
             state.warning.pop(0)
             state.pulseGap = now
 
 
-        #remove unnecessary pulses
+        # remove unnecessary pulses
 
         if len (state.pulse) > 0:
 
-            if state.pulseR[0] > 5000:
+            if state.pulseR[0] > distance(0 , 0 , width , height):
 
                 state.pulse.pop(0)
                 state.pulseR.pop(0) 
                 state.dr.pop(0)
 
 
-        #add coin
+        # add coin
 
-        if (now - start) >= 10000 and state.coin == None and now - state.coinGap >= 5000:
+        if (now - start) >= 60000 and state.coin == None and now - state.coinGap >= 5000:
 
             state.coin = (random.randint(0 , width - coinSize) , random.randint(0 , height - coinSize))
 
 
-        #draw characters
+        # draw characters
 
         if state.coin != None:
 
             pygame.draw.rect(screen , yellow , [state.coin[0] , state.coin[1] , coinSize , coinSize])
 
         for i in range (len(state.warning)):
-
-            if now % 400 < 200:
-                pygame.draw.circle(screen, red, (state.warning[i]), 18 , 50)
+            
+            if now % 400 < 400 // 2:
+                pygame.draw.circle(screen, red, (state.warning[i]), 20 , 50)
             else:
-                pygame.draw.circle(screen, dred, (state.warning[i]), 18 , 50)
+                pygame.draw.circle(screen, dred, (state.warning[i]), 20 , 50)
 
         for i in range (len(state.pulse)):
 
-            pygame.draw.circle(screen, white, (state.pulse[i]), state.pulseR[i], 8)
+            pygame.draw.circle(screen, white, (state.pulse[i]), state.pulseR[i], 10)
             state.pulseR[i] += state.dr[i]
 
         pygame.draw.rect(screen , green , [int(state.x) , int(state.y) , spriteSize , spriteSize])
 
         
-        #print score
+        # print score
 
-        text = points.render(score , True , white)
-        textRect = text.get_rect()
-        textRect.center = (width // 2, height // 8)
-        screen.blit(text, textRect)
+        # text = points.render(score , True , white)
+        # textRect = text.get_rect()
+        # textRect.center = (width // 2, height // 4)
+        # screen.blit(text, textRect)
+
+        numberWidth = digitImages["0"].get_width() + scoreGap * len(score)
+        scoreWidth = sum(digitImages[c].get_width() for c in score)
+        scoreStart = width // 2 - scoreWidth // 2
+
+        for c in score:
+            screen.blit(digitImages[c], (scoreStart, height // 8))
+            scoreStart += digitImages[c].get_width() + scoreGap
 
 
-        #coin reg
+        # coin reg
 
         if state.coin != None:
 
@@ -286,16 +312,16 @@ while running:
                 
 
 
-        #hitreg
+        # hitreg
 
         for i in range (len(state.pulse)):
 
-            if -8 <= distance(state.x + spriteSize/2 , state.y + spriteSize/2 , state.pulse[i][0] , state.pulse[i][1]) - state.pulseR[i] <= 8 and state.v == speed:
+            if -10 <= distance(state.x + spriteSize/2 , state.y + spriteSize/2 , state.pulse[i][0] , state.pulse[i][1]) - state.pulseR[i] <= 10 and state.v == speed:
 
                 alive = False
 
 
-        #updates
+        # updates
 
         pygame.display.flip()
         clock.tick(60)
