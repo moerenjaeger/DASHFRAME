@@ -58,6 +58,9 @@ class GameState:
         self.lineWarning = []
         self.line = []
         self.lineWarningStart = 0
+        self.linePos = []
+        self.linePosD = []
+        self.lineSide = []
 
         self.coin = None
         self.coinGap = 0
@@ -240,20 +243,27 @@ while running:
 
         # warning before line
 
-        if now - state.lastPulse >= state.lineInterval / 2 and now - start >= state.lineInterval / 2 and len (state.lineWarning) < 1:
+        # if now - state.lastLine >= state.lineInterval / 2 and now - start >= state.lineInterval / 2 and len (state.lineWarning) < 1:
 
-            randomSide = random.choice(["top" , "right" , "bottom" , "left"])
+        #     randomSide = random.choice(["top" , "right" , "bottom" , "left"])
 
-            if randomSide == "top":
-                state.lineWarning.append(((0 , 5) , (width , 5)))
-            if randomSide == "bottom":
-                state.lineWarning.append(((0 , height - 5) , (width , height - 5)))
-            if randomSide == "right":
-                state.lineWarning.append(((width - 5 , 0) , (width - 5 , height)))
-            if randomSide == "left":
-                state.lineWarning.append(((5 , 0) , (5 , height)))
+        #     if randomSide == "top":
+        #         state.lineWarning.append(((0 , 5) , (width , 5)))
+        #         state.lineSide.append("top")
+
+        #     if randomSide == "bottom":
+        #         state.lineWarning.append(((0 , height - 5) , (width , height - 5)))
+        #         state.lineSide.append("bottom")
+
+        #     if randomSide == "right":
+        #         state.lineWarning.append(((width - 5 , 0) , (width - 5 , height)))
+        #         state.lineSide.append("right")
+
+        #     if randomSide == "left":
+        #         state.lineWarning.append(((5 , 0) , (5 , height)))
+        #         state.lineSide.append("left")
     
-            state.lineWarningStart = now
+        #     state.lineWarningStart = now
 
 
         # warning before pulse
@@ -265,9 +275,13 @@ while running:
 
         # add line
 
-        if now - state.lastLine >= state.lineInterval and now - start >= state.lineInterval and len(state.lineWarning) > 0:
+        # if now - state.lastLine >= state.lineInterval and now - start >= state.lineInterval and len(state.lineWarning) > 0:
 
-            state.line.append(state.lineWarning[0])
+        #     state.line.append(state.lineWarning[0])
+        #     state.linePos.append(0)
+        #     state.linePosD.append(min(10, 3 + (now - start) // 40000))
+        #     state.lineWarning.pop(0)
+        #     state.lastLine = now
         
         # add pulse
 
@@ -280,7 +294,16 @@ while running:
             state.lastPulse = now
 
 
-        # remove unnecessary pulses
+        # remove unnecessary characters
+
+        # if len (state.line) > 0:
+
+        #     if state.linePos[0] > distance(0 , 0 , width , height):
+
+        #         state.line.pop(0)
+        #         state.linePos.pop(0) 
+        #         state.linePosD.pop(0)
+        #         state.lineSide.pop(0)
 
         if len (state.pulse) > 0:
 
@@ -327,6 +350,11 @@ while running:
                 pygame.draw.circle(screen, red, (state.warning[i]), 20 , 50)
             else:
                 pygame.draw.circle(screen, dred, (state.warning[i]), 20 , 50)
+
+        # for i in range (len(state.line)):
+
+        #     pygame.draw.line(screen, white, state.line[i][0], state.line[i][1], 10)
+        #     state.linePos[i] += state.linePosD[i]
 
         for i in range (len(state.pulse)):
 
