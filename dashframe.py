@@ -9,7 +9,6 @@ screen = pygame.display.set_mode((0, 0), pygame.FULLSCREEN)
 width , height = screen.get_size()
 surf = pygame.Surface((width, height))
 
-
 black = (0, 0, 0)
 white = (255, 255, 255)
 green = (0, 255, 0)
@@ -44,28 +43,38 @@ class GameState:
         self.v = speed
         self.last = 0
 
-        self.lastPulse = 0
         self.pulse = []
-        self.pulseR = []
-        self.dr = []
-        self.warning = []
-        self.spawnInterval = 0
-        self.warningStart = 0
-
-        self.lineStart = ""
-        self.lastLine = 0
-        self.lineInterval = 0
-        self.lineWarning = []
         self.line = []
-        self.lineWarningStart = 0
-        self.linePos = []
-        self.linePosD = []
-        self.lineSide = []
+
+        self.pulseSpawnInterval = 0
+        self.lineSpawnInterval = 0
+        self.lastLine = 0
+        self.lastPulse = 0
+
 
         self.coin = None
         self.coinGap = 0
 
         self.extraScore = 0
+
+class Pulse:
+    def __init__(self):
+        self.pos = (0 , 0)
+        self.radius = 0
+        self.deltaRadius = 0
+        self.real = False
+        self.spawntime = 0
+        self.warningLength = 0
+
+# class Line:
+#     def __init__(self):
+#         self.lineStart = ""
+#         self.lineWarning = []
+#         self.line = []
+#         self.lineWarningStart = 0
+#         self.linePos = []
+#         self.linePosD = []
+#         self.lineSide = []
 
 
 def movement(keys, state):
@@ -150,7 +159,7 @@ while running:
         # screen.blit(text, textRect)
 
         logoRect = logo.get_rect()
-        logoRect.center = (width // 2, height * 0.4)
+        logoRect.center = (width // 2, height * 0.35)
         screen.blit(logo, logoRect)
 
         # text = undertitle.render("PRESS SPACE TO PLAY", True, white)
@@ -159,7 +168,7 @@ while running:
         # screen.blit(text, textRect)
 
         spacetoplayRect = spacetoplay.get_rect()
-        spacetoplayRect.center = (width // 2, height * 0.65)
+        spacetoplayRect.center = (width // 2, height * 0.6)
         screen.blit(spacetoplay, spacetoplayRect)
 
         pygame.display.flip()
@@ -201,8 +210,8 @@ while running:
 
         keys = pygame.key.get_pressed()
         now = pygame.time.get_ticks()
-        state.spawnInterval = max(800, 6000 - (now - start) // 50)
-        state.lineInterval = 1000
+        state.pulseSpawnInterval = max(800, 5000 - (now - start) / 40)
+        state.lineSpawnInterval = 1000
         score = str(math.floor((now - start) / 100) / 10 + state.extraScore)
 
 
@@ -220,6 +229,10 @@ while running:
                 pygame.quit()
                 sys.exit()
         
+
+
+        ###  --- PLAYER ---  ###
+
 
         # path behind player
         
@@ -240,6 +253,76 @@ while running:
 
         borderCheck(state)
 
+
+        # draw player
+                
+        if state.coin != None:
+
+            pygame.draw.rect(screen , yellow , [state.coin[0] , state.coin[1] , coinSize , coinSize])
+
+        pygame.draw.rect(screen , green , [int(state.x) , int(state.y) , spriteSize , spriteSize])
+
+
+
+        ### --- PULSE --- ###
+
+
+        # add pulse
+
+        if now - state.lastPulse >= state.pulseSpawnInterval and now - start >= state.pulseSpawnInterval:
+
+            state.pulse.append(Pulse())
+            state.pulse[-1].pos = (random.randint(0 , width) , random.randint(0 , height))
+            state.pulse[-1].spawntime = now
+            state.pulse[-1].warningLength = state.pulseSpawnInterval / 4
+            state.pulse[-1].real = False
+            state.lastPulse = now
+
+
+
+        for i in range (len(state.pulse)):
+
+            
+            # add check for warning becoming pulse
+
+            if state.pulse[i].real == False and now - start >= state.pulse[i].warningLength + state.pulse[i].spawntime:
+
+                state.pulse[i].real = True
+                state.pulse[i].deltaRadius = (min(10, 3 + (now - start) // 40000))
+                state.lastPulse = now
+
+
+            # draw pulse
+
+            if (state.pulse[i].real == False):
+
+                if now >= state.pulse[i].spawntime + state.pulseSpawnInterval * 0.35:
+                    blinkInterval = 200
+                else:
+                    blinkInterval = 400
+
+                if now % blinkInterval < blinkInterval // 2:
+                    pygame.draw.circle(screen, red, (state.pulse[i].pos), 20 , 50)
+                else:
+                    pygame.draw.circle(screen, dred, (state.pulse[i].pos), 20 , 50)
+
+            else:
+
+                pygame.draw.circle(screen, white, (state.pulse[i].pos), state.pulse[i].radius, 10)
+                state.pulse[i].radius += state.pulse[i].deltaRadius
+
+
+        # remove unnecessary pulses
+
+        if len (state.pulse) > 0:
+
+            if state.pulse[0].radius > distance(0 , 0 , width , height):
+
+                state.pulse.pop(0)
+
+
+
+        ###  --- LINE --- ###
 
         # warning before line
 
@@ -265,14 +348,6 @@ while running:
     
         #     state.lineWarningStart = now
 
-
-        # warning before pulse
-
-        if now - state.lastPulse >= state.spawnInterval / 2 and now - start >= state.spawnInterval / 2 and len(state.warning) < 1 :
-
-            state.warning.append((random.randint(0 , width) , random.randint(0 , height)))
-            state.warningStart = now
-
         # add line
 
         # if now - state.lastLine >= state.lineInterval and now - start >= state.lineInterval and len(state.lineWarning) > 0:
@@ -282,16 +357,7 @@ while running:
         #     state.linePosD.append(min(10, 3 + (now - start) // 40000))
         #     state.lineWarning.pop(0)
         #     state.lastLine = now
-        
-        # add pulse
 
-        if now - state.lastPulse >= state.spawnInterval and now - start >= state.spawnInterval and len(state.warning) > 0:
-
-            state.pulse.append(state.warning[0])
-            state.pulseR.append(0)
-            state.dr.append(min(10, 3 + (now - start) // 40000))
-            state.warning.pop(0)
-            state.lastPulse = now
 
 
         # remove unnecessary characters
@@ -305,27 +371,7 @@ while running:
         #         state.linePosD.pop(0)
         #         state.lineSide.pop(0)
 
-        if len (state.pulse) > 0:
-
-            if state.pulseR[0] > distance(0 , 0 , width , height):
-
-                state.pulse.pop(0)
-                state.pulseR.pop(0) 
-                state.dr.pop(0)
-
-
-        # add coin
-
-        if (now - start) >= 60000 and state.coin == None and now - state.coinGap >= 5000:
-
-            state.coin = (random.randint(0 , width - coinSize) , random.randint(0 , height - coinSize))
-
-
-        # draw characters
-
-        if state.coin != None:
-
-            pygame.draw.rect(screen , yellow , [state.coin[0] , state.coin[1] , coinSize , coinSize])
+        # draw line
 
         # for i in range (len(state.lineWarning)):
 
@@ -339,29 +385,18 @@ while running:
         #     else:
         #         pygame.draw.line(screen , dred , state.lineWarning[i][0] , state.lineWarning[i][1] , 10)
 
-        for i in range (len(state.warning)):
-            
-            if now >= state.warningStart + state.spawnInterval * 0.35:
-                blinkInterval = 200
-            else:
-                blinkInterval = 400
-
-            if now % blinkInterval < blinkInterval // 2:
-                pygame.draw.circle(screen, red, (state.warning[i]), 20 , 50)
-            else:
-                pygame.draw.circle(screen, dred, (state.warning[i]), 20 , 50)
 
         # for i in range (len(state.line)):
 
         #     pygame.draw.line(screen, white, state.line[i][0], state.line[i][1], 10)
         #     state.linePos[i] += state.linePosD[i]
 
-        for i in range (len(state.pulse)):
 
-            pygame.draw.circle(screen, white, (state.pulse[i]), state.pulseR[i], 10)
-            state.pulseR[i] += state.dr[i]
+        # add coin
 
-        pygame.draw.rect(screen , green , [int(state.x) , int(state.y) , spriteSize , spriteSize])
+        if (now - start) >= 60000 and state.coin == None and now - state.coinGap >= 5000:
+
+            state.coin = (random.randint(0 , width - coinSize) , random.randint(0 , height - coinSize))
 
         
         # print score
@@ -376,7 +411,7 @@ while running:
         scoreStart = width // 2 - scoreWidth // 2
 
         for c in score:
-            screen.blit(digitImages[c], (scoreStart, height // 8))
+            screen.blit(digitImages[c], (scoreStart, height // 9))
             scoreStart += digitImages[c].get_width() + scoreGap
 
 
@@ -398,9 +433,11 @@ while running:
 
         for i in range (len(state.pulse)):
 
-            if -10 <= distance(state.x + spriteSize/2 , state.y + spriteSize/2 , state.pulse[i][0] , state.pulse[i][1]) - state.pulseR[i] <= 10 and state.v == speed:
+            if -10 <= distance(state.x + spriteSize/2 , state.y + spriteSize/2 , state.pulse[i].pos[0] , state.pulse[i].pos[1]) - state.pulse[i].radius <= 10 and state.v == speed:
 
                 alive = False
+
+        
 
 
         # updates
