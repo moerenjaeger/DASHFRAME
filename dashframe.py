@@ -38,11 +38,7 @@ clock = pygame.time.Clock()
 
 class GameState:
     def __init__(self):
-        self.x = 0.5 * width - 0.5 * spriteSize
-        self.y = 0.5 * height - 0.5 * spriteSize
-        self.v = speed
-        self.last = 0
-
+  
         self.pulse = []
         self.line = []
 
@@ -57,6 +53,15 @@ class GameState:
 
         self.extraScore = 0
 
+
+class Player:
+    def __init__(self):
+        self.x = 0.5 * width - 0.5 * spriteSize
+        self.y = 0.5 * height - 0.5 * spriteSize
+        self.v = speed
+        self.lastDash = 0
+        
+        
 class Pulse:
     def __init__(self):
         self.pos = (0 , 0)
@@ -77,10 +82,10 @@ class Pulse:
 #         self.lineSide = []
 
 
-def movement(keys, state):
+def movement(keys, player):
 
-    vx = (keys[pygame.K_d] - keys[pygame.K_a]) * state.v
-    vy = (keys[pygame.K_s] - keys[pygame.K_w]) * state.v
+    vx = (keys[pygame.K_d] - keys[pygame.K_a]) * player.v
+    vy = (keys[pygame.K_s] - keys[pygame.K_w]) * player.v
 
     #adjustement for diagonal
 
@@ -88,41 +93,41 @@ def movement(keys, state):
         vx = vx * (math.sqrt(2) / 2)
         vy = vy * (math.sqrt(2) / 2)
 
-    state.x += vx
-    state.y += vy
+    player.x += vx
+    player.y += vy
 
 
-def borderCheck(state):
+def borderCheck(player):
 
-    if state.x >= width - spriteSize:
-        state.x = width - spriteSize
-    elif state.x <= 0:
-        state.x = 0
+    if player.x >= width - spriteSize:
+        player.x = width - spriteSize
+    elif player.x <= 0:
+        player.x = 0
 
-    if state.y >= height - spriteSize:
-        state.y = height - spriteSize
-    elif state.y <= 0:
-        state.y = 0
+    if player.y >= height - spriteSize:
+        player.y = height - spriteSize
+    elif player.y <= 0:
+        player.y = 0
 
 
-def dash(keys, now, state):
+def dash(keys, now, player):
 
     #dash cooldown
 
-    if keys[pygame.K_SPACE] and now - state.last >= 500:
-        state.v = speed * 30
-        state.last = pygame.time.get_ticks()
+    if keys[pygame.K_SPACE] and now - player.lastDash >= 500:
+        player.v = speed * 30
+        player.lastDash = now
 
 
     #dash duration (1 frame)
 
-    if now - state.last >= 1:
-        state.v = speed
+    if now - player.lastDash >= 1:
+        player.v = speed
 
 
-def overlay(state):
+def overlay(player):
 
-    if state.v == speed:
+    if player.v == speed:
         surf.set_alpha(100)
     else:
         surf.set_alpha(255)
@@ -144,6 +149,7 @@ while running:
 
     screen.fill(black)
     state = GameState()
+    player = Player()
 
     menu = True
 
@@ -182,7 +188,7 @@ while running:
             pygame.event.pump()
 
 
-        # quit options
+        # quit options / game start
 
         for event in pygame.event.get():
 
@@ -209,10 +215,10 @@ while running:
         # refreshing variables
 
         keys = pygame.key.get_pressed()
-        now = pygame.time.get_ticks()
-        state.pulseSpawnInterval = max(800, 5000 - (now - start) / 40)
+        now = pygame.time.get_ticks() - start
+        state.pulseSpawnInterval = max(800, 5000 - now / 40)
         state.lineSpawnInterval = 1000
-        score = str(math.floor((now - start) / 100) / 10 + state.extraScore)
+        score = str(math.floor(now/ 100) / 10 + state.extraScore)
 
 
         # quit options
@@ -236,31 +242,27 @@ while running:
 
         # path behind player
         
-        overlay(state)
+        overlay(player)
 
 
         # wasd movement and adjustement for diagonal
 
-        movement(keys , state)
+        movement(keys , player)
 
 
         # dash cooldown and duration
 
-        dash(keys, now, state)
+        dash(keys, now, player)
 
 
         # screen borders
 
-        borderCheck(state)
+        borderCheck(player)
 
 
         # draw player
-                
-        if state.coin != None:
-
-            pygame.draw.rect(screen , yellow , [state.coin[0] , state.coin[1] , coinSize , coinSize])
-
-        pygame.draw.rect(screen , green , [int(state.x) , int(state.y) , spriteSize , spriteSize])
+      
+        pygame.draw.rect(screen , green , [int(player.x) , int(player.y) , spriteSize , spriteSize])
 
 
 
@@ -269,7 +271,7 @@ while running:
 
         # add pulse
 
-        if now - state.lastPulse >= state.pulseSpawnInterval and now - start >= state.pulseSpawnInterval:
+        if now - state.lastPulse >= state.pulseSpawnInterval and now >= state.pulseSpawnInterval:
 
             state.pulse.append(Pulse())
             state.pulse[-1].pos = (random.randint(0 , width) , random.randint(0 , height))
@@ -285,10 +287,10 @@ while running:
             
             # add check for warning becoming pulse
 
-            if state.pulse[i].real == False and now - start >= state.pulse[i].warningLength + state.pulse[i].spawntime:
+            if state.pulse[i].real == False and now >= state.pulse[i].warningLength + state.pulse[i].spawntime:
 
                 state.pulse[i].real = True
-                state.pulse[i].deltaRadius = (min(10, 3 + (now - start) // 40000))
+                state.pulse[i].deltaRadius = (min(10, 3 + now // 40000))
                 state.lastPulse = now
 
 
@@ -350,11 +352,11 @@ while running:
 
         # add line
 
-        # if now - state.lastLine >= state.lineInterval and now - start >= state.lineInterval and len(state.lineWarning) > 0:
+        # if now - state.lastLine >= state.lineInterval and now >= state.lineInterval and len(state.lineWarning) > 0:
 
         #     state.line.append(state.lineWarning[0])
         #     state.linePos.append(0)
-        #     state.linePosD.append(min(10, 3 + (now - start) // 40000))
+        #     state.linePosD.append(min(10, 3 + now // 40000))
         #     state.lineWarning.pop(0)
         #     state.lastLine = now
 
@@ -392,13 +394,24 @@ while running:
         #     state.linePos[i] += state.linePosD[i]
 
 
+
+        ### --- COIN --- ###
+
         # add coin
 
-        if (now - start) >= 60000 and state.coin == None and now - state.coinGap >= 5000:
+        if now >= 60000 and state.coin == None and now - state.coinGap >= 5000:
 
             state.coin = (random.randint(0 , width - coinSize) , random.randint(0 , height - coinSize))
 
-        
+           
+        if state.coin != None:
+
+            pygame.draw.rect(screen , yellow , [state.coin[0] , state.coin[1] , coinSize , coinSize])
+
+
+        ### --- SCORE --- ###
+
+
         # print score
 
         # text = points.render(score , True , white)
@@ -415,12 +428,16 @@ while running:
             scoreStart += digitImages[c].get_width() + scoreGap
 
 
+
+        ### --- HITREG --- ###
+
+
         # coin reg
 
         if state.coin != None:
 
             coinRect = pygame.Rect(state.coin[0], state.coin[1], coinSize, coinSize)
-            playerRect = pygame.Rect(state.x, state.y, spriteSize, spriteSize)
+            playerRect = pygame.Rect(player.x, player.y, spriteSize, spriteSize)
 
             if playerRect.colliderect(coinRect) and state.v == speed:
 
@@ -429,11 +446,11 @@ while running:
                 state.coinGap = now
                 
 
-        # hitreg
+        # pulse reg
 
         for i in range (len(state.pulse)):
 
-            if -10 <= distance(state.x + spriteSize/2 , state.y + spriteSize/2 , state.pulse[i].pos[0] , state.pulse[i].pos[1]) - state.pulse[i].radius <= 10 and state.v == speed:
+            if -10 <= distance(player.x + spriteSize/2 , player.y + spriteSize/2 , state.pulse[i].pos[0] , state.pulse[i].pos[1]) - state.pulse[i].radius <= 10 and player.v == speed:
 
                 alive = False
 
