@@ -216,9 +216,6 @@ while running:
 
         keys = pygame.key.get_pressed()
         now = pygame.time.get_ticks() - start
-        state.pulseSpawnInterval = max(800, 5000 - now / 40)
-        state.lineSpawnInterval = 1000
-        score = str(math.floor(now/ 100) / 10 + state.extraScore)
 
 
         # quit options
@@ -267,6 +264,11 @@ while running:
 
 
         ### --- PULSE --- ###
+
+
+        # update Interval
+
+        state.pulseSpawnInterval = max(800, 5000 - now / 40)
 
 
         # add pulse
@@ -325,6 +327,10 @@ while running:
 
 
         ###  --- LINE --- ###
+
+        #update Interval
+        
+        #state.lineSpawnInterval = 1000
 
         # warning before line
 
@@ -412,6 +418,11 @@ while running:
         ### --- SCORE --- ###
 
 
+        # update score
+
+        score = str(math.floor(now/ 100) / 10 + state.extraScore)
+
+
         # print score
 
         # text = points.render(score , True , white)
@@ -439,7 +450,7 @@ while running:
             coinRect = pygame.Rect(state.coin[0], state.coin[1], coinSize, coinSize)
             playerRect = pygame.Rect(player.x, player.y, spriteSize, spriteSize)
 
-            if playerRect.colliderect(coinRect) and state.v == speed:
+            if playerRect.colliderect(coinRect) and player.v == speed:
 
                 state.coin = None
                 state.extraScore += 10
